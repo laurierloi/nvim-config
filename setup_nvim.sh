@@ -14,7 +14,7 @@ sudo apt install -y \
   ninja-build gettext cmake \
   ripgrep fd-find tig \
   luarocks \
-  php-cli composer openjdk-17-jdk julia \
+  composer \
   python${PYTHON_VERSION} python${PYTHON_VERSION}-venv python${PYTHON_VERSION}-dev \
   python3-pip
 
