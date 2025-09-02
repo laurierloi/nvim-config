@@ -15,6 +15,7 @@ sudo apt install -y \
   ripgrep fd-find tig \
   luarocks \
   composer \
+  fzf \
   python${PYTHON_VERSION} python${PYTHON_VERSION}-venv python${PYTHON_VERSION}-dev \
   python3-pip
 

@@ -1,3 +1,6 @@
+-- Byte-code loader
+vim.loader.enable()
+
 -- Leader
 vim.g.mapleader = ","
 
@@ -60,7 +63,10 @@ require("lazy").setup({
     { "nvim-lua/plenary.nvim" },
     {
         "nvim-telescope/telescope.nvim",
-        dependencies = { "nvim-lua/plenary.nvim" },
+        dependencies = {
+            { "nvim-telescope/telescope-fzf-native.nvim", build = "make" },
+            "nvim-tree/nvim-web-devicons",
+        },
         config = function()
             local builtin = require("telescope.builtin")
             vim.keymap.set("n", "<C-p>", builtin.find_files, { desc = "Find files" })
@@ -70,6 +76,15 @@ require("lazy").setup({
             vim.keymap.set("n", "<leader>fw", builtin.grep_string, { desc = "Word under cursor" })
             vim.keymap.set("n", "<leader>b", builtin.buffers, { desc = "Buffers" })
             vim.keymap.set("n", "<leader>h", builtin.help_tags, { desc = "Help" })
+            vim.keymap.set("n", "<leader>p", "<cmd>Telescope projects<CR>", { desc = "Projects" })
+
+            local t = require("telescope")
+            t.setup {
+                defaults = { file_ignore_patterns = { "node_modules" } },
+                pickers = { find_files = { hidden = true } },
+                extensions = { fzf = { case_mode = "smart_case" } },
+            }
+            pcall(t.load_extension, "fzf") -- or "zf-native"
         end,
     },
     {
@@ -79,6 +94,11 @@ require("lazy").setup({
             require("telescope").load_extension("dap")
         end,
     },
+    {
+        "nvim-telescope/telescope-ui-select.nvim",
+        config = function() require("telescope").load_extension("ui-select") end
+    },
+    { "ahmedkhalf/project.nvim", config = function() require("project_nvim").setup {} end }
     {
         "nvim-lualine/lualine.nvim",
         dependencies = { "nvim-tree/nvim-web-devicons" },
@@ -108,6 +128,7 @@ require("lazy").setup({
     {
         "stevearc/aerial.nvim",
         dependencies = { "nvim-treesitter/nvim-treesitter", "nvim-tree/nvim-web-devicons" },
+        opts = { backends = { "lsp", "treesitter", "markdown" } },
         config = function()
             require("aerial").setup {
                 backends = { "lsp", "treesitter", "markdown" },
@@ -129,7 +150,17 @@ require("lazy").setup({
     { "nvim-tree/nvim-web-devicons" },
     { "nvim-lualine/lualine.nvim" },
     { "tpope/vim-fugitive" },
-    { "lewis6991/gitsigns.nvim",          config = function() require("gitsigns").setup() end },
+    {
+        "lewis6991/gitsigns.nvim",
+        opts = { current_line_blame = true },
+        keys = {
+            { "]h",  function() require("gitsigns").next_hunk() end,  desc = "Next hunk" },
+            { "[h",  function() require("gitsigns").prev_hunk() end,  desc = "Prev hunk" },
+            { ",ts", function() require("gitsigns").stage_hunk() end, desc = "Git: stage hunk" },
+            { ",tr", function() require("gitsigns").reset_hunk() end, desc = "Git: reset hunk" },
+        },
+    },
+    { "nvim-pack/nvim-spectre",           keys = { { ",sr", "<cmd>Spectre<CR>", desc = "Search & replace (project)" } } }
     { "preservim/nerdcommenter" },
     { "neovim/nvim-lspconfig" },
     { "williamboman/mason.nvim",          build = ":MasonUpdate" },
@@ -219,6 +250,32 @@ require("lazy").setup({
         "mfussenegger/nvim-dap-python",
         dependencies = { "mfussenegger/nvim-dap" },
     },
+    {
+        "folke/which-key.nvim",
+        event = "VeryLazy",
+        opts = {
+            spec = {
+                { ",",  group = "Leader" },
+                { ",t", group = "Git" },         -- you’re using ,t for Git
+                { ",d", group = "Debug" },       -- your DAP prefix
+                { ",g", group = "Search" },      -- grep
+                { ",e", group = "Explorer" },    -- nvim-tree (right)
+                { ",o", group = "Outline" },     -- aerial
+                { ",x", group = "Diagnostics" }, -- Trouble
+            },
+        },
+    },
+    {
+        "folke/trouble.nvim",
+        opts = {},
+        keys = {
+            { ",xx", "<cmd>Trouble diagnostics toggle<CR>", desc = "Diagnostics (doc/workspace)" },
+            { ",xr", "<cmd>Trouble lsp toggle<CR>",         desc = "LSP references/symbols" },
+        }
+    }
+    { "numToStr/Comment.nvim", opts = {} },
+    { "folke/flash.nvim",      opts = {} },
+    { "folke/lazydev.nvim",    ft = "lua", opts = {} },
     -- lint
     {
         "mfussenegger/nvim-lint",
@@ -253,6 +310,19 @@ require("lazy").setup({
                     require("lint").try_lint()
                 end,
             })
+        end,
+    },
+    {
+        "b0o/SchemaStore.nvim",
+        ft = { "json", "yaml" },
+        config = function()
+            local lspconfig = require("lspconfig")
+            lspconfig.jsonls.setup {
+                settings = { json = { schemas = require("schemastore").json.schemas(), validate = { enable = true } } },
+            }
+            lspconfig.yamlls.setup {
+                settings = { yaml = { schemaStore = { enable = false }, schemas = require("schemastore").yaml.schemas() } },
+            }
         end,
     }
 })
@@ -296,10 +366,9 @@ local function lsp_on_attach(_, bufnr)
     vim.keymap.set("n", "<leader>ldd", function() builtin.diagnostics({ bufnr = 0 }) end, opts)
 end
 
--- Default servers
-for _, lsp in ipairs({ "pyright", "bashls", "rust_analyzer", "html", "cssls", "jsonls" }) do
-    lspconfig[lsp].setup { capabilities = capabilities, on_attach = lsp_on_attach }
-end
+vim.lsp.enable({
+    "pyright", "bashls", "lua_ls", "rust_analyzer", "volar", "html", "cssls", "jsonls", "yamlls"
+})
 
 -- Volar (Vue takeover mode)
 lspconfig.volar.setup {
