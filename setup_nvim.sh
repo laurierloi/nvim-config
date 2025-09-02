@@ -13,19 +13,21 @@ sudo apt install -y \
   curl git unzip build-essential pkg-config \
   ninja-build gettext cmake \
   ripgrep fd-find tig \
+  luarocks \
+  php-cli composer openjdk-17-jdk julia \
   python${PYTHON_VERSION} python${PYTHON_VERSION}-venv python${PYTHON_VERSION}-dev \
   python3-pip
 
 
-#echo ">>> Installing latest neo vim"
-#git clone https://github.com/neovim/neovim /tmp/neovim
-#cd /tmp/neovim
-#git checkout stable
-#make CMAKE_BUILD_TYPE=RelWithDebInfo
-#sudo make install
-#echo 'export PATH="/usr/local/bin:$PATH"' >> ~/.bashrc
-#export PATH="/usr/local/bin:$PATH"
-#cd -
+echo ">>> Installing latest neo vim"
+git clone https://github.com/neovim/neovim /tmp/neovim
+cd /tmp/neovim
+git checkout stable
+make CMAKE_BUILD_TYPE=RelWithDebInfo
+sudo make install
+echo 'export PATH="/usr/local/bin:$PATH"' >> ~/.bashrc
+export PATH="/usr/local/bin:$PATH"
+cd -
 
 echo ">>> Installing NVM (Node Version Manager)..."
 if [ ! -d "$HOME/.nvm" ]; then
@@ -56,12 +58,8 @@ echo ">>> Installing LSP servers..."
 
 # Python LSP
 pip3 install --user 'python-lsp-server[all]'
-
-# Neovim NPM
-npm install -g neovim
-
-# Bash
-npm install -g bash-language-server
+pip3 install --user ruff
+pip3 install --user yamllint
 
 # TypeScript / JavaScript / Vue (Volar)
 npm install -g typescript typescript-language-server @vue/language-server
@@ -69,11 +67,31 @@ npm install -g typescript typescript-language-server @vue/language-server
 # Rust Analyzer (ensure latest from rustup component)
 rustup component add rust-analyzer || cargo install rust-analyzer
 
-# Lua formatter (lua-language-server handled by Mason)
-npm install -g lua-fmt
+# Various npm dependencies
+npm install -g \
+    bash-language-server \
+    lua-fmt \
+    stylua \
+    eslint \
+    jsregexp \
+    neovim \
+    Copilot-cli \
+    markdownlint-cli2 \
+    vscode-langservers-extracted
 
-# HTML / CSS / JSON
-npm install -g vscode-langservers-extracted
+echo ">>> Installing Terraform tools..."
+if ! command -v terraform &> /dev/null; then
+  sudo snap install terraform --classic
+fi
+
+if ! command -v tflint &> /dev/null; then
+  sudo snap install tflint --classic
+fi
+pip3 install --user checkov
+
+echo ">>> Installing tree-sitter CLI..."
+cargo install tree-sitter-cli
+cargo install selene
 
 echo ">>> Installing latest GHDL..."
 if ! command -v ghdl &> /dev/null; then
