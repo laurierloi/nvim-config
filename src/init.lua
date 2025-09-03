@@ -226,6 +226,9 @@ require("lazy").setup({
     { "rust-lang/rust.vim" },
     { "mfukar/robotframework-vim" },
     { "posva/vim-vue" },
+    { "onsails/lspkind.nvim" },
+    { "tpope/vim-surround" },
+    { "tpope/vim-repeat" },
     {
         "NeogitOrg/neogit",
         dependencies = { "nvim-lua/plenary.nvim", "sindrets/diffview.nvim" },
@@ -284,8 +287,8 @@ require("lazy").setup({
         event = "InsertEnter",
         config = function()
             require("copilot").setup {
-                suggestion = { enabled = false }, -- use copilot-cmp instead
-                panel = { enabled = true },
+                suggestion = { enabled = false },
+                panel = { enabled = false },
             }
         end,
     },
@@ -419,26 +422,44 @@ local function lsp_on_attach(_, bufnr)
     vim.keymap.set("n", "<leader>ldd", function() builtin.diagnostics({ bufnr = 0 }) end, opts)
 end
 
+local tsserver_filetypes = { 'typescript', 'javascript', 'javascriptreact', 'typescriptreact', 'vue' }
+local vue_plugin = {
+    name = '@vue/typescript-plugin',
+    languages = { 'vue' },
+    configNamespace = 'typescript',
+}
+local vtsls_config = {
+    settings = {
+        vtsls = {
+            tsserver = {
+                globalPlugins = {
+                    vue_plugin,
+                },
+            },
+        },
+    },
+    filetypes = tsserver_filetypes,
+}
+
+local ts_ls_config = {
+    init_options = {
+        plugins = {
+            vue_plugin,
+        },
+    },
+    filetypes = tsserver_filetypes,
+}
+
+local vue_ls_config = {}
+vim.lsp.config('vtsls', vtsls_config)
+vim.lsp.config('vue_ls', vue_ls_config)
+vim.lsp.config('ts_ls', ts_ls_config)
+
 vim.lsp.enable({
-    "pyright", "bashls", "lua_ls", "rust_analyzer", "vue_ls", "html", "cssls", "jsonls", "yamlls",
+    "pyright", "bashls", "lua_ls", "rust_analyzer", "vtsls", "vue_ls", "html", "cssls", "jsonls", "yamlls",
     "terraformls",
 })
 
--- Volar (Vue takeover mode)
-lspconfig.vue_ls.setup {
-    capabilities = capabilities,
-    on_attach = lsp_on_attach,
-    filetypes = { "vue", "javascript", "typescript", "javascriptreact", "typescriptreact" },
-    init_options = {
-        vue = {
-            hybridMode = false,
-        },
-        typescript = {
-            tsdk = vim.fn.stdpath("data") ..
-                "/mason/packages/typescript-language-server/node_modules/typescript/lib"
-        }
-    }
-}
 
 -- Lua
 lspconfig.lua_ls.setup {
@@ -501,3 +522,33 @@ vim.keymap.set("n", "<leader>dbp", telescope.extensions.dap.list_breakpoints, { 
 vim.keymap.set("n", ",pg", "<cmd>NeovimProjectDiscover<CR>", { desc = "Discover Project" })
 vim.keymap.set("n", ",ph", "<cmd>NeovimProjectHistory<CR>", { desc = "Project History" })
 vim.keymap.set("n", ",pl", "<cmd>NeovimProjectLoadRecent<CR>", { desc = "Load recent Project" })
+
+-- Lspkind
+local lspkind = require('lspkind')
+cmp.setup {
+    formatting = {
+        format = lspkind.cmp_format({
+            mode = 'symbol', -- show only symbol annotations
+            maxwidth = {
+                -- prevent the popup from showing more than provided characters (e.g 50 will not show more than 50 characters)
+                -- can also be a function to dynamically calculate max width such as
+                -- menu = function() return math.floor(0.45 * vim.o.columns) end,
+                menu = 50,            -- leading text (labelDetails)
+                abbr = 50,            -- actual suggestion item
+            },
+            ellipsis_char = '...',    -- when popup menu exceed maxwidth, the truncated part would show ellipsis_char instead (must define maxwidth first)
+            show_labelDetails = true, -- show labelDetails in menu. Disabled by default
+
+            -- The function below will be called before any actual modifications from lspkind
+            -- so that you can provide more controls on popup customization. (See [#30](https://github.com/onsails/lspkind-nvim/pull/30))
+            before = function(entry, vim_item)
+                -- ...
+                return vim_item
+            end,
+
+            symbol_map = {
+                Copilot = "",
+            },
+        })
+    }
+}
