@@ -13,6 +13,7 @@ sudo apt install -y \
   curl git unzip build-essential pkg-config \
   ninja-build gettext cmake \
   ripgrep fd-find tig \
+  gpg \
   luarocks \
   composer \
   fzf \
@@ -21,14 +22,18 @@ sudo apt install -y \
 
 
 echo ">>> Installing latest neo vim"
-git clone https://github.com/neovim/neovim /tmp/neovim
-cd /tmp/neovim
-git checkout stable
-make CMAKE_BUILD_TYPE=RelWithDebInfo
-sudo make install
-echo 'export PATH="/usr/local/bin:$PATH"' >> ~/.bashrc
-export PATH="/usr/local/bin:$PATH"
-cd -
+if [ -d "/tmp/neovim" ]; then
+    echo "Neovim source already exists, skipping clone."
+else
+    git clone https://github.com/neovim/neovim /tmp/neovim
+    cd /tmp/neovim
+    git checkout stable
+    make CMAKE_BUILD_TYPE=RelWithDebInfo
+    sudo make install
+    echo 'export PATH="/usr/local/bin:$PATH"' >> ~/.bashrc
+    export PATH="/usr/local/bin:$PATH"
+    cd -
+fi
 
 echo ">>> Installing NVM (Node Version Manager)..."
 if [ ! -d "$HOME/.nvm" ]; then
@@ -53,7 +58,7 @@ rustup default stable
 
 echo ">>> Setting up Neovim config..."
 mkdir -p ~/.config/nvim
-ln -sf "$PWD/init.lua" ~/.config/nvim/init.lua
+cp -r ${PWD}/src/* ~/.config/nvim/
 
 echo ">>> Installing LSP servers..."
 
@@ -72,23 +77,12 @@ rustup component add rust-analyzer || cargo install rust-analyzer
 npm install -g \
     bash-language-server \
     lua-fmt \
-    stylua \
     eslint \
-    jsregexp \
     neovim \
-    Copilot-cli \
     markdownlint-cli2 \
     vscode-langservers-extracted
 
 echo ">>> Installing Terraform tools..."
-if ! command -v terraform &> /dev/null; then
-  sudo snap install terraform --classic
-fi
-
-if ! command -v tflint &> /dev/null; then
-  sudo snap install tflint --classic
-fi
-pip3 install --user checkov
 
 echo ">>> Installing tree-sitter CLI..."
 cargo install tree-sitter-cli
@@ -99,8 +93,8 @@ if ! command -v ghdl &> /dev/null; then
   sudo apt install -y gnat llvm clang make zlib1g-dev
   git clone https://github.com/ghdl/ghdl.git /tmp/ghdl
   cd /tmp/ghdl
-  ./configure --prefix=$HOME/.local --with-llvm-config
-  make -j$(nproc)
+  ./configure --prefix="$HOME/.local" --with-llvm-config
+  make -j"$(nproc)"
   make install
   cd -
   rm -rf /tmp/ghdl

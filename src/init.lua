@@ -76,7 +76,6 @@ require("lazy").setup({
             vim.keymap.set("n", "<leader>fw", builtin.grep_string, { desc = "Word under cursor" })
             vim.keymap.set("n", "<leader>b", builtin.buffers, { desc = "Buffers" })
             vim.keymap.set("n", "<leader>h", builtin.help_tags, { desc = "Help" })
-            vim.keymap.set("n", "<leader>p", "<cmd>Telescope projects<CR>", { desc = "Projects" })
 
             local t = require("telescope")
             t.setup {
@@ -98,7 +97,6 @@ require("lazy").setup({
         "nvim-telescope/telescope-ui-select.nvim",
         config = function() require("telescope").load_extension("ui-select") end
     },
-    { "ahmedkhalf/project.nvim", config = function() require("project_nvim").setup {} end }
     {
         "nvim-lualine/lualine.nvim",
         dependencies = { "nvim-tree/nvim-web-devicons" },
@@ -160,7 +158,62 @@ require("lazy").setup({
             { ",tr", function() require("gitsigns").reset_hunk() end, desc = "Git: reset hunk" },
         },
     },
-    { "nvim-pack/nvim-spectre",           keys = { { ",sr", "<cmd>Spectre<CR>", desc = "Search & replace (project)" } } }
+    { "nvim-pack/nvim-spectre",           keys = { { ",sr", "<cmd>Spectre<CR>", desc = "Search & replace (project)" } } },
+    {
+        "Shatur/neovim-session-manager",
+        dependencies = { "nvim-lua/plenary.nvim" },
+        config = function()
+            local Path = require("plenary.path")
+            require("session_manager").setup({
+                sessions_dir = Path:new(vim.fn.stdpath("data"), "sessions"),
+                autoload_mode = require("session_manager.config").AutoloadMode.Disabled,
+            })
+        end,
+    },
+    {
+        "coffebar/neovim-project",
+        dependencies = { "nvim-telescope/telescope.nvim", "Shatur/neovim-session-manager" },
+        opts = {
+            projects = {
+                "~/devs/*",
+                "~/.config/nvim",
+            },
+            last_session_on_start = true,
+            dashboard_mode = false,
+            datapath = vim.fn.stdpath("data"), -- ~/.local/share/nvim/
+            forget_project_keys = {
+                -- insert mode: Ctrl+d
+                i = "<C-d>",
+                -- normal mode: d
+                n = "d"
+            },
+            detection_methods = { "pattern" }, -- enable auto-detection
+            patterns = { ".git", "Makefile", "package.json", "pyproject.toml" },
+        },
+        session_manager_opts = {
+            autosave_ignore_dirs = {
+                vim.fn.expand("~"), -- don't create a session for $HOME/
+                "/tmp",
+            },
+            autosave_ignore_filetypes = {
+                -- All buffers of these file types will be closed before the session is saved
+                "ccc-ui",
+                "gitcommit",
+                "gitrebase",
+                "qf",
+                "toggleterm",
+            },
+        },
+        picker = {
+            type = "telescope",     -- one of "telescope", "fzf-lua", or "snacks"
+            preview = {
+                enabled = true,     -- show directory structure in Telescope preview
+                git_status = true,  -- show branch name, an ahead/behind counter, and the git status of each file/folder
+                git_fetch = true,   -- fetch from remote, used to display the number of commits ahead/behind, requires git authorization
+                show_hidden = true, -- show hidden files/folders
+            },
+        },
+    },
     { "preservim/nerdcommenter" },
     { "neovim/nvim-lspconfig" },
     { "williamboman/mason.nvim",          build = ":MasonUpdate" },
@@ -218,7 +271,7 @@ require("lazy").setup({
                     hcl = { "terraform_fmt" },
                 },
                 format_on_save = {
-                    timeout_ms = 500,
+                    timeout_ms = 1000,
                     lsp_fallback = true,
                 },
             }
@@ -271,8 +324,8 @@ require("lazy").setup({
         keys = {
             { ",xx", "<cmd>Trouble diagnostics toggle<CR>", desc = "Diagnostics (doc/workspace)" },
             { ",xr", "<cmd>Trouble lsp toggle<CR>",         desc = "LSP references/symbols" },
-        }
-    }
+        },
+    },
     { "numToStr/Comment.nvim", opts = {} },
     { "folke/flash.nvim",      opts = {} },
     { "folke/lazydev.nvim",    ft = "lua", opts = {} },
@@ -367,11 +420,12 @@ local function lsp_on_attach(_, bufnr)
 end
 
 vim.lsp.enable({
-    "pyright", "bashls", "lua_ls", "rust_analyzer", "volar", "html", "cssls", "jsonls", "yamlls"
+    "pyright", "bashls", "lua_ls", "rust_analyzer", "vue_ls", "html", "cssls", "jsonls", "yamlls",
+    "terraformls",
 })
 
 -- Volar (Vue takeover mode)
-lspconfig.volar.setup {
+lspconfig.vue_ls.setup {
     capabilities = capabilities,
     on_attach = lsp_on_attach,
     filetypes = { "vue", "javascript", "typescript", "javascriptreact", "typescriptreact" },
@@ -442,3 +496,8 @@ vim.keymap.set("n", "<leader>dd", telescope.extensions.dap.configurations, { des
 vim.keymap.set("n", "<leader>dv", telescope.extensions.dap.variables, { desc = "DAP Variables" })
 vim.keymap.set("n", "<leader>df", telescope.extensions.dap.frames, { desc = "DAP Frames" })
 vim.keymap.set("n", "<leader>dbp", telescope.extensions.dap.list_breakpoints, { desc = "DAP Breakpoints" })
+
+-- Telescope Project
+vim.keymap.set("n", ",pg", "<cmd>NeovimProjectDiscover<CR>", { desc = "Discover Project" })
+vim.keymap.set("n", ",ph", "<cmd>NeovimProjectHistory<CR>", { desc = "Project History" })
+vim.keymap.set("n", ",pl", "<cmd>NeovimProjectLoadRecent<CR>", { desc = "Load recent Project" })
