@@ -76,6 +76,7 @@ rustup component add rust-analyzer || cargo install rust-analyzer
 # Various npm dependencies
 npm install -g \
     bash-language-server \
+    yaml-language-server \
     lua-fmt \
     eslint \
     neovim \
