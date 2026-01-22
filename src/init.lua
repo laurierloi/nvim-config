@@ -53,7 +53,9 @@ local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not vim.loop.fs_stat(lazypath) then
     vim.fn.system({
         "git", "clone", "--filter=blob:none",
-        "https://github.com/folke/lazy.nvim.git", lazypath
+        "https://github.com/folke/lazy.nvim.git",
+        "--branch=stable",
+        lazypath
     })
 end
 vim.opt.rtp:prepend(lazypath)
@@ -239,17 +241,8 @@ require("lazy").setup({
     },
     {
         "nvim-treesitter/nvim-treesitter",
+        lazy = false,
         build = ":TSUpdate",
-        config = function()
-            require("nvim-treesitter.configs").setup {
-                ensure_installed = {
-                    "python", "bash", "javascript", "typescript", "rust", "lua",
-                    "html", "css", "json", "vue", "vhdl", "markdown",
-                },
-                highlight = { enable = true },
-                indent = { enable = true },
-            }
-        end,
     },
     -- Conform
     {
@@ -375,7 +368,7 @@ require("lazy").setup({
         "b0o/SchemaStore.nvim",
         ft = { "json", "yaml" },
         config = function()
-            local lspconfig = require("lspconfig")
+            local lspconfig = require("vim.lsp.config")
             lspconfig.jsonls.setup {
                 settings = { json = { schemas = require("schemastore").json.schemas(), validate = { enable = true } } },
             }
@@ -402,7 +395,7 @@ require("mason-lspconfig").setup {
     }
 }
 
-local lspconfig = require("lspconfig")
+-- local vim.lsp.config = require("vim.lsp.config")
 local capabilities = require("cmp_nvim_lsp").default_capabilities()
 
 -- LSP keymaps (now with telescope loaded safely)
@@ -465,18 +458,18 @@ vim.lsp.enable({
 
 
 -- Lua
-lspconfig.lua_ls.setup {
-    capabilities = capabilities,
-    on_attach = lsp_on_attach,
-    settings = {
-        Lua = {
-            runtime = { version = "LuaJIT" },
-            diagnostics = { globals = { "vim" } },
-            workspace = { library = vim.api.nvim_get_runtime_file("", true), checkThirdParty = false },
-            telemetry = { enable = false },
-        },
-    },
-}
+--vim.lsp.config.lua_ls.setup {
+--    capabilities = capabilities,
+--    on_attach = lsp_on_attach,
+--    settings = {
+--        Lua = {
+--            runtime = { version = "LuaJIT" },
+--            diagnostics = { globals = { "vim" } },
+--            workspace = { library = vim.api.nvim_get_runtime_file("", true), checkThirdParty = false },
+--            telemetry = { enable = false },
+--        },
+--    },
+--}
 
 -- Completion
 local cmp = require("cmp")
@@ -545,6 +538,11 @@ cmp.setup({
 })
 
 vim.api.nvim_set_hl(0, "CmpItemKindCopilot", { fg = "#6CC644" })
+
+require 'nvim-treesitter'.install({
+    "python", "bash", "javascript", "typescript", "rust", "lua",
+    "html", "css", "json", "vue", "vhdl", "markdown",
+})
 
 -- Lspkind
 local lspkind = require('lspkind')
